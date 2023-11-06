@@ -1,0 +1,97 @@
+package defender.ti.tests.control;
+
+import defender.ti.assertions.ErrorHandleAssert;
+import defender.ti.assertions.control.HostAssert;
+import defender.ti.assertions.control.ReputationAssert;
+import defender.ti.model.ResponseBodyImpl.Host;
+import defender.ti.model.ResponseBodyImpl.Reputation;
+import defender.ti.tests.BaseTest;
+import defender.ti.utils.Constants;
+import defender.ti.utils.DataGenerator;
+import io.restassured.response.Response;
+import net.serenitybdd.junit.runners.SerenityRunner;
+import net.thucydides.core.annotations.Steps;
+import net.thucydides.core.annotations.Title;
+import net.thucydides.core.annotations.WithTag;
+import net.thucydides.core.annotations.WithTags;
+import net.thucydides.junit.annotations.Concurrent;
+import org.eclipse.jetty.http.HttpStatus;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
+import static defender.ti.api.BaseApiCall.ApiCallHelper.INVALID_CREDENTIALS;
+import static defender.ti.api.BaseApiCall.ApiCallHelper.VALID;
+import static defender.ti.assertions.GenericAssertions.RFC5322;
+
+@RunWith(SerenityRunner.class)
+@Concurrent
+public class HostsTests extends BaseTest {
+
+    @Steps
+    ErrorHandleAssert assertions;
+
+    @Steps
+    HostAssert hostAssert;
+
+    @Test
+    @Title("GET host by hostName - Happy Path")
+    @WithTags(value = {@WithTag("Regression"), @WithTag("Hosts"), @WithTag("happy-path")})
+    public void getHostByHostNameHappyPath() {
+        String host = DataGenerator.hostNameGenerator("google");
+        Response response = hostSteps.getHostByHostName(host, VALID);
+        assertions.assertStatusCode(response, HttpStatus.OK_200)
+                .assertHeaderMatchWith("Date", RFC5322);
+        Host hostResponse = response.as(Host.class);
+        hostAssert.assertThat(hostResponse)
+                .mandatoryFieldsAreNotEmpty();
+
+        assertions.assertAll();
+    }
+
+
+    @Test
+    @Title("GET host by hostName - Invalid Credentials")
+    @WithTags(value = {@WithTag("Hosts")})
+    public void getReputationByHostInvalidCredentials() {
+        String host = DataGenerator.hostNameGenerator("google");
+        Response response = reputationSteps.getReputationForAHost(host, INVALID_CREDENTIALS);
+        assertions.assertStatusCode(response, HttpStatus.UNAUTHORIZED_401)
+                //.assertHeaderContainsAttribute("x-ms-request-id")
+                .assertHeaderMatchWith("Date", RFC5322);
+
+        assertions.assertAll();
+    }
+
+
+    @Test
+    @Title("GET host by IP Address - Happy Path")
+    @WithTags(value = {@WithTag("Regression"), @WithTag("Hosts"), @WithTag("happy-path")})
+    public void getHostByIPAddress() {
+        String host = DataGenerator.hostNameGenerator("8.8.8.8");
+        Response response = hostSteps.getHostByHostName(host, VALID);
+        assertions.assertStatusCode(response, HttpStatus.OK_200)
+                .assertHeaderMatchWith("Date", RFC5322);
+        Host.IpAddress hostResponse = response.as(Host.IpAddress.class);
+
+        hostAssert.assertThat(hostResponse)
+                .mandatoryFieldsAreNotEmpty();
+
+        assertions.assertAll();
+    }
+
+
+    @Test
+    @Title("GET host by IP Address - Invalid Credentials")
+    @WithTags(value = { @WithTag("Hosts")})
+    public void getHostByIPAddressInvalidCredentials() {
+        String host = DataGenerator.hostNameGenerator("8.8.8.8");
+        Response response = hostSteps.getHostByHostName(host, INVALID_CREDENTIALS);
+        assertions.assertStatusCode(response, HttpStatus.UNAUTHORIZED_401)
+                .assertHeaderMatchWith("Date", RFC5322);
+
+        assertions.assertAll();
+    }
+
+
+
+}
